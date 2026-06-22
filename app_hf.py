@@ -63,22 +63,55 @@ def orchestrate_melody(midi_path, style='EPIC'):
         if not notes:
             return None, "No notes found in MIDI"
         
-        # Create orchestrated version
+        print(f"[INFO] Found {len(notes)} input notes")
+        
+        # Create orchestrated version with multiple tracks
         orch_midi = pretty_midi.PrettyMIDI()
         
-        # Add instruments based on style
-        styles = {
-            'EPIC': ['Brass Section', 'String Section', 'Percussion'],
-            'JAZZ': ['Piano', 'Bass', 'Drums'],
-            'CLASSICAL': ['Violin', 'Cello', 'Flute']
-        }
+        # Define orchestration patterns based on style
+        if style.upper() == 'EPIC':
+            # EPIC: Lower strings, Bass, Brass, High strings
+            orchestration = [
+                {'name': 'Strings Low', 'program': 48, 'pitch_shift': -12},
+                {'name': 'Bass', 'program': 33, 'pitch_shift': -24},
+                {'name': 'Brass', 'program': 61, 'pitch_shift': 0},
+                {'name': 'Strings High', 'program': 48, 'pitch_shift': 12},
+            ]
+        elif style.upper() == 'JAZZ':
+            # JAZZ: Piano, Bass, Chords
+            orchestration = [
+                {'name': 'Piano Low', 'program': 0, 'pitch_shift': -12},
+                {'name': 'Bass', 'program': 33, 'pitch_shift': -24},
+                {'name': 'Piano Chords', 'program': 0, 'pitch_shift': 0},
+                {'name': 'Piano High', 'program': 0, 'pitch_shift': 12},
+            ]
+        else:  # CLASSICAL
+            # CLASSICAL: Violin, Cello, Flute, Oboe
+            orchestration = [
+                {'name': 'Cello', 'program': 42, 'pitch_shift': -12},
+                {'name': 'Violin Low', 'program': 40, 'pitch_shift': -6},
+                {'name': 'Violin', 'program': 40, 'pitch_shift': 0},
+                {'name': 'Flute', 'program': 73, 'pitch_shift': 12},
+            ]
         
-        instruments = styles.get(style, styles['EPIC'])
-        
-        for inst_name in instruments:
-            instrument = pretty_midi.Instrument(program=0, is_drum=False, name=inst_name)
+        # Generate orchestrated tracks
+        for track_info in orchestration:
+            instrument = pretty_midi.Instrument(
+                program=track_info['program'],
+                is_drum=False,
+                name=track_info['name']
+            )
+            
+            # Create notes for this track
             for note in notes:
-                instrument.notes.append(note)
+                new_note = pretty_midi.Note(
+                    velocity=note.velocity,
+                    pitch=max(0, min(127, note.pitch + track_info['pitch_shift'])),
+                    start=note.start,
+                    end=note.end
+                )
+                instrument.notes.append(new_note)
+            
             orch_midi.instruments.append(instrument)
         
         # Save
@@ -86,6 +119,7 @@ def orchestrate_melody(midi_path, style='EPIC'):
         last_output_midi = '/tmp/orchestrated.mid'
         orch_midi.write(last_output_midi)
         
+        print(f"[INFO] Generated orchestrated MIDI with {len(orchestration)} tracks")
         return last_output_midi, "Success"
     
     except Exception as e:
@@ -126,6 +160,33 @@ def api_orchestrate():
             os.remove(midi_path)
             return jsonify({'error': message}), 400
         
+        # Read the generated MIDI and extract track info
+        try:
+            generated_midi = pretty_midi.PrettyMIDI(output_path)
+            
+            # Extract tracks info
+            track_names = []
+            tracks = []
+            total_notes = 0
+            
+            for instrument in generated_midi.instruments:
+                track_names.append(instrument.name or 'Untitled')
+                track_notes = len(instrument.notes)
+                total_notes += track_notes
+                tracks.append([
+                    {
+                        'pitch': note.pitch,
+                        'start': note.start,
+                        'end': note.end,
+                        'velocity': note.velocity
+                    }
+                    for note in instrument.notes
+                ])
+        except:
+            track_names = ['Strings Low', 'Bass', 'Brass', 'Strings High']
+            tracks = [[], [], [], []]
+            total_notes = 0
+        
         # Read the MIDI file and encode as base64
         with open(output_path, 'rb') as f:
             midi_data = f.read()
@@ -133,9 +194,10 @@ def api_orchestrate():
         
         # Clean up
         os.remove(midi_path)
-        os.remove(output_path)
+        if os.path.exists(output_path):
+            os.remove(output_path)
         
-        # Return JSON with encoded MIDI data
+        # Return JSON with encoded MIDI data and track info
         return jsonify({
             'success': True,
             'style': style,
@@ -145,8 +207,9 @@ def api_orchestrate():
                 'style': style,
                 'input_notes': [],
                 'processing_time': 0,
-                'track_names': ['Strings', 'Bass', 'Brass', 'Piano'],
-                'tracks': [[], [], [], []]
+                'track_names': track_names,
+                'tracks': tracks,
+                'total_notes': total_notes
             }
         }), 200
     
