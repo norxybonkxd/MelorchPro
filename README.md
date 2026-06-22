@@ -376,12 +376,9 @@ If you use MelOrch-Pro in your research, please cite:
 
 ## License
 
-Research prototype - BVRIT, 2024
+Research prototype - BVRIT, 2026
 
-## Authors
-
-- **Dr. G. Uday Kiran** - BVRIT, Hyderabad
-- **P. Honey Diana** - BVRIT, Hyderabad  
+## Authors 
 - **Ajay Pentakoti** - BVRIT, Hyderabad
 
 ---
