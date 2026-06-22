@@ -19,11 +19,13 @@ COPY app.py .
 COPY config.py .
 COPY tokenizer.py .
 COPY model.py .
-COPY model.pth .
 COPY index.html .
+
+# Note: model.pth is optional and app will run with untrained model if not present
+# To use a trained model, mount it as a volume or add it to the container
 
 # Expose port
 EXPOSE 7860
 
-# Run the app
-CMD ["python", "-u", "app.py"]
+# Run the app with gunicorn
+CMD ["gunicorn", "--bind", "0.0.0.0:7860", "--timeout", "120", "wsgi:app"]
