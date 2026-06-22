@@ -103,6 +103,8 @@ def home():
 def api_orchestrate():
     """API endpoint to orchestrate a melody"""
     try:
+        import base64
+        
         if 'file' not in request.files:
             return jsonify({'error': 'No file provided'}), 400
         
@@ -124,11 +126,29 @@ def api_orchestrate():
             os.remove(midi_path)
             return jsonify({'error': message}), 400
         
-        # Clean up input
-        os.remove(midi_path)
+        # Read the MIDI file and encode as base64
+        with open(output_path, 'rb') as f:
+            midi_data = f.read()
+            midi_base64 = base64.b64encode(midi_data).decode('utf-8')
         
-        return send_file(output_path, mimetype='audio/midi', as_attachment=True, 
-                        download_name='orchestrated.mid')
+        # Clean up
+        os.remove(midi_path)
+        os.remove(output_path)
+        
+        # Return JSON with encoded MIDI data
+        return jsonify({
+            'success': True,
+            'style': style,
+            'midi_data': midi_base64,
+            'message': message,
+            'orchestration': {
+                'style': style,
+                'input_notes': [],
+                'processing_time': 0,
+                'track_names': ['Strings', 'Bass', 'Brass', 'Piano'],
+                'tracks': [[], [], [], []]
+            }
+        }), 200
     
     except Exception as e:
         return jsonify({'error': str(e)}), 500

@@ -535,6 +535,7 @@ let currentStyle = 'epic';
 let isGenerating = false;
 let inputNotes = [];
 let orchestratedNotes = {};
+let midiDataBase64 = null;  // Store base64 MIDI data
 const STEPS = 128;
 const PITCH_RANGE = 36; // C3 to B5
 const PITCH_OFFSET = 36; // MIDI C3
@@ -788,6 +789,9 @@ async function runOrchestration() {
     });
     console.log('============================');
 
+    // Store MIDI data for download
+    midiDataBase64 = result.midi_data;
+
     setProgress(70);
     setStatus('Visualizing output...');
 
@@ -901,31 +905,31 @@ function buildOrchestrationGrid() {
 
 // ========== DOWNLOAD MIDI ==========
 function downloadMidi() {
-  if (Object.values(orchestratedNotes).every(track => track.length === 0)) {
+  if (!midiDataBase64) {
     showToast('Generate orchestration first', 'error');
     return;
   }
 
   try {
-    fetch('/api/download-midi')
-      .then(res => {
-        if (!res.ok) throw new Error('Download failed');
-        return res.blob();
-      })
-      .then(blob => {
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `orchestration_${currentStyle}_${Date.now()}.mid`;
-        a.click();
-        URL.revokeObjectURL(url);
-        showToast('✓ MIDI downloaded', 'success');
-      })
-      .catch(err => {
-        showToast(`Download error: ${err.message}`, 'error');
-      });
+    // Decode base64 to binary
+    const binaryString = atob(midiDataBase64);
+    const bytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
+    
+    // Create blob and download
+    const blob = new Blob([bytes], { type: 'audio/midi' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `orchestration_${currentStyle}_${Date.now()}.mid`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('✓ MIDI downloaded', 'success');
   } catch (err) {
-    showToast(`Error: ${err.message}`, 'error');
+    console.error('Download error:', err);
+    showToast(`Download error: ${err.message}`, 'error');
   }
 }
 
