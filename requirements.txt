@@ -1,0 +1,5 @@
+# Project dependencies
+torch
+pretty_midi
+numpy
+tqdm
