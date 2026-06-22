@@ -15,9 +15,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 RUN pip install --no-cache-dir flask flask-cors
 
 # Copy application files
-COPY wsgi.py .
 COPY app_hf.py .
-COPY app.py .
 COPY config.py .
 COPY tokenizer.py .
 COPY model.py .
