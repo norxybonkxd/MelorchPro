@@ -3,3 +3,7 @@ torch
 pretty_midi
 numpy
 tqdm
+flask
+flask-cors
+gunicorn
+werkzeug
