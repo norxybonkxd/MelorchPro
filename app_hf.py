@@ -143,5 +143,6 @@ def api_download():
     return jsonify({'error': 'No orchestrated file available'}), 404
 
 if __name__ == '__main__':
-    # For Hugging Face, listen on 0.0.0.0:7860
-    app.run(host='0.0.0.0', port=7860, debug=False)
+    # Use PORT environment variable (set by Render), default to 7860 for local dev
+    port = int(os.environ.get('PORT', 7860))
+    app.run(host='0.0.0.0', port=port, debug=False)

@@ -15,6 +15,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 RUN pip install --no-cache-dir flask flask-cors
 
 # Copy application files
+COPY wsgi.py .
+COPY app_hf.py .
 COPY app.py .
 COPY config.py .
 COPY tokenizer.py .
@@ -27,5 +29,5 @@ COPY index.html .
 # Expose port
 EXPOSE 7860
 
-# Run the app with gunicorn
-CMD ["gunicorn", "--bind", "0.0.0.0:7860", "--timeout", "120", "wsgi:app"]
+# Run Flask app directly
+CMD ["python", "app_hf.py"]
